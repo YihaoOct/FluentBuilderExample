@@ -14,6 +14,8 @@ public class BookKeeper
         this.endDate = endDate;
         this.entries = entries.ToArray();
     }
+
+    public static BookKeeperBuilder CreateBuilder() => new BookKeeperBuilder();
     
     public void Print() 
     {
@@ -49,5 +51,54 @@ public class BookKeeper
     {
         var total = entries.Sum(entry => entry.amount);
         Console.WriteLine($"Total\t$ {total}");
+    }
+}
+
+public class BookKeeperBuilder
+{
+    string title = "Untitled";
+    DateOnly startDate;
+    DateOnly endDate;
+    List<Entry> entries = new List<Entry>();
+
+    public BookKeeperBuilder WithTitle(string title)
+    {
+        this.title = title;
+        return this;
+    }
+
+    public BookKeeperBuilder From(DateOnly date)
+    {
+        this.startDate = date;
+        return this;
+    }
+
+    public BookKeeperBuilder From(int year, int month, int day) => From(new DateOnly(year, month, day));
+
+    public BookKeeperBuilder To(DateOnly date)
+    {
+        this.endDate = date;
+        return this;
+    }
+
+    public BookKeeperBuilder To(int year, int month, int day) => To(new DateOnly(year, month, day));
+
+    public BookKeeperBuilder WithEntries(IEnumerable<Entry> entries) 
+    {
+        this.entries.AddRange(entries);
+        return this;
+    }
+
+    public BookKeeperBuilder WithEntry(Entry entry) 
+    {
+        this.entries.Add(entry);
+        return this;
+    }
+
+    public BookKeeperBuilder WithEntry(decimal amount, DateOnly date, string? description) => WithEntry(new Entry(amount, date, description));
+    
+    public BookKeeper Build() 
+    {
+        return new BookKeeper(title, startDate, endDate, entries);
     }
 }
