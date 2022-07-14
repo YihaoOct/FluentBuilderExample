@@ -6,13 +6,15 @@ public class BookKeeper
     DateOnly startDate;
     DateOnly endDate;
     Entry[] entries;
+    Action<Entry> entryFormatter;
     
-    public BookKeeper(string title, DateOnly startDate, DateOnly endDate, IEnumerable<Entry> entries) 
+    public BookKeeper(string title, DateOnly startDate, DateOnly endDate, IEnumerable<Entry> entries, Action<Entry> entryFormatter) 
     {
         this.title = title;
         this.startDate = startDate;
         this.endDate = endDate;
         this.entries = entries.ToArray();
+        this.entryFormatter = entryFormatter;
     }
 
     public static BookKeeperBuilder CreateBuilder() => new BookKeeperBuilder();
@@ -42,7 +44,7 @@ public class BookKeeper
         Console.WriteLine("----------------------------------------------------------");
         foreach (var entry in entries)
         {
-            Console.WriteLine($"{entry.date}\t$ {entry.amount}\t{entry.description}");
+            entryFormatter(entry);
         }
         Console.WriteLine("----------------------------------------------------------");
     }
@@ -60,6 +62,7 @@ public class BookKeeperBuilder
     DateOnly startDate;
     DateOnly endDate;
     List<Entry> entries = new List<Entry>();
+    Action<Entry> entryFormatter = entry => Console.WriteLine($"{entry.date}\t$ {entry.amount}\t{entry.description}");
 
     public BookKeeperBuilder WithTitle(string title)
     {
@@ -97,8 +100,14 @@ public class BookKeeperBuilder
 
     public BookKeeperBuilder WithEntry(decimal amount, DateOnly date, string? description) => WithEntry(new Entry(amount, date, description));
     
+    public BookKeeperBuilder WithEntryFormatter(Action<Entry> entryFormatter) 
+    {
+        this.entryFormatter = entryFormatter;
+        return this;
+    }
+
     public BookKeeper Build() 
     {
-        return new BookKeeper(title, startDate, endDate, entries);
+        return new BookKeeper(title, startDate, endDate, entries, entryFormatter);
     }
 }
