@@ -17,7 +17,7 @@ public class BookKeeper
         this.entryFormatter = entryFormatter;
     }
 
-    public BookKeeper(BookKeeperContext context) : this(context.Title, context.StartDate, context.EndDate, context.Entries, context.EntryFormatter) { }
+    public BookKeeper(BookKeeperContext context) : this(context.Configuration.Title, context.Configuration.StartDate, context.Configuration.EndDate, context.Entries, context.Configuration.EntryFormatter) { }
 
     public static BookKeeperBuilder CreateBuilder() => new BookKeeperBuilder();
     
@@ -58,52 +58,105 @@ public class BookKeeper
     }
 }
 
-public class BookKeeperContext
+public class BookKeeperConfiguration
 {
-    public string Title { get; set; } = "Untitled";
+    public string Title { get; set; }
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
+    public Action<Entry> EntryFormatter { get; set; }
+    public BookKeeperContext Context { get; set; }
+
+    public BookKeeperConfiguration(string title, DateOnly startDate, DateOnly endDate, Action<Entry> entryFormatter, BookKeeperContext context)
+    {
+        Title = title;
+        StartDate = startDate;
+        EndDate = endDate;
+        EntryFormatter = entryFormatter;
+        Context = context;
+    }
+}
+
+public class BookKeeperConfigurationBuilder
+{
+    string title = "Untitled";
+    DateOnly startDate;
+    DateOnly endDate;
+    Action<Entry> entryFormatter = entry => Console.WriteLine($"{entry.date}\t$ {entry.amount}\t{entry.description}");
+    BookKeeperContext context;
+
+    public BookKeeperConfigurationBuilder(BookKeeperContext context)
+    {
+        this.context = context;
+    }
+
+    public BookKeeperConfigurationBuilder WithTitle(string title)
+    {
+        this.title = title;
+        return this;
+    }
+
+    public BookKeeperConfigurationBuilder WithTitle(Func<string, string> titleProvider)
+    {
+        this.title = titleProvider(this.title);
+        return this;
+    }
+
+    public BookKeeperConfigurationBuilder WithTitle(Func<string, BookKeeperContext, string> titleProvider)
+    {
+        this.title = titleProvider(this.title, context);
+        return this;
+    }
+
+    public BookKeeperConfigurationBuilder From(DateOnly date)
+    {
+        this.startDate = date;
+        return this;
+    }
+
+    public BookKeeperConfigurationBuilder From(int year, int month, int day) => From(new DateOnly(year, month, day));
+
+    public BookKeeperConfigurationBuilder To(DateOnly date)
+    {
+        this.endDate = date;
+        return this;
+    }
+
+    public BookKeeperConfigurationBuilder To(int year, int month, int day) => To(new DateOnly(year, month, day));
+
+    public BookKeeperConfigurationBuilder WithEntryFormatter(Action<Entry> entryFormatter) 
+    {
+        this.entryFormatter = entryFormatter;
+        return this;
+    }
+
+    public BookKeeperConfigurationBuilder WithEntryFormatter(Action<Entry, Action<Entry>> entryFormatter)
+    {
+        var oldFormatter = this.entryFormatter;
+        this.entryFormatter = entry => entryFormatter(entry, oldFormatter);
+        return this;
+    }
+
+    public BookKeeperConfiguration Build() => new BookKeeperConfiguration(title, startDate, endDate, entryFormatter, context);
+}
+
+public class BookKeeperContext
+{
     public List<Entry> Entries { get; set;} = new List<Entry>();
-    public Action<Entry> EntryFormatter { get; set; } = entry => Console.WriteLine($"{entry.date}\t$ {entry.amount}\t{entry.description}");
+    public BookKeeperConfiguration Configuration { get; set; }
+    public BookKeeperContext() => this.Configuration = new BookKeeperConfigurationBuilder(this).Build();
 }
 
 public class BookKeeperBuilder
 {
     BookKeeperContext context = new BookKeeperContext();
 
-    public BookKeeperBuilder WithTitle(string title)
+    public BookKeeperBuilder Configure(Action<BookKeeperConfigurationBuilder> configuration)
     {
-        context.Title = title;
+        var configurationBuilder = new BookKeeperConfigurationBuilder(context);
+        configuration(configurationBuilder);
+        context.Configuration = configurationBuilder.Build();
         return this;
     }
-
-    public BookKeeperBuilder WithTitle(Func<string, string> titleProvider)
-    {
-        context.Title = titleProvider(context.Title);
-        return this;
-    }
-
-    public BookKeeperBuilder WithTitle(Func<string, BookKeeperContext, string> titleProvider)
-    {
-        context.Title = titleProvider(context.Title, context);
-        return this;
-    }
-
-    public BookKeeperBuilder From(DateOnly date)
-    {
-        context.StartDate = date;
-        return this;
-    }
-
-    public BookKeeperBuilder From(int year, int month, int day) => From(new DateOnly(year, month, day));
-
-    public BookKeeperBuilder To(DateOnly date)
-    {
-        context.EndDate = date;
-        return this;
-    }
-
-    public BookKeeperBuilder To(int year, int month, int day) => To(new DateOnly(year, month, day));
 
     public BookKeeperBuilder WithEntries(IEnumerable<Entry> entries) 
     {
@@ -119,19 +172,6 @@ public class BookKeeperBuilder
 
     public BookKeeperBuilder WithEntry(decimal amount, DateOnly date, string? description) => WithEntry(new Entry(amount, date, description));
     
-    public BookKeeperBuilder WithEntryFormatter(Action<Entry> entryFormatter) 
-    {
-        context.EntryFormatter = entryFormatter;
-        return this;
-    }
-
-    public BookKeeperBuilder WithEntryFormatter(Action<Entry, Action<Entry>> entryFormatter)
-    {
-        var oldFormatter = context.EntryFormatter;
-        context.EntryFormatter = entry => entryFormatter(entry, oldFormatter);
-        return this;
-    }
-
     public BookKeeper Build() 
     {
         return new BookKeeper(context);
