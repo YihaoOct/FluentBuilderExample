@@ -70,6 +70,12 @@ public class BookKeeperBuilder
         return this;
     }
 
+    public BookKeeperBuilder WithTitle(Func<string, string> titleProvider)
+    {
+        this.title = titleProvider(this.title);
+        return this;
+    }
+
     public BookKeeperBuilder From(DateOnly date)
     {
         this.startDate = date;
@@ -103,6 +109,13 @@ public class BookKeeperBuilder
     public BookKeeperBuilder WithEntryFormatter(Action<Entry> entryFormatter) 
     {
         this.entryFormatter = entryFormatter;
+        return this;
+    }
+
+    public BookKeeperBuilder WithEntryFormatter(Action<Entry, Action<Entry>> entryFormatter)
+    {
+        var oldFormatter = this.entryFormatter;
+        this.entryFormatter = entry => entryFormatter(entry, oldFormatter);
         return this;
     }
 

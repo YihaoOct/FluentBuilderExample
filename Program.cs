@@ -2,6 +2,7 @@
     .From(2022, 1, 1)
     .To(2022, 1, 7)
     .WithTitle("My Journals")
+    .WithTitle(oldTitle => oldTitle.ToUpperInvariant())
     .WithEntry(200m, new DateOnly(2022, 1, 1), "Found on road")
     .WithEntry(-20.5m, new DateOnly(2022, 1, 2), "Lunch")
     .WithEntries(new Entry[] 
@@ -12,10 +13,10 @@
     })
     .WithEntry(-100m, new DateOnly(2022, 1, 6), "Lost")
     .WithEntry(-20m, new DateOnly(2022, 1, 7), "Gave to charity")
-    .WithEntryFormatter(entry => 
+    .WithEntryFormatter((entry, olderFormatter) => 
     {
         Console.ForegroundColor = entry.amount >= 0 ? ConsoleColor.Green : ConsoleColor.Yellow;
-        Console.WriteLine($"{entry.date}\t$ {entry.amount}\t{entry.description}");
+        olderFormatter(entry);
         Console.ResetColor();
     })
     .Build();
