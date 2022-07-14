@@ -2,7 +2,6 @@
     .From(2022, 1, 1)
     .To(2022, 1, 7)
     .WithTitle("My Journals")
-    .WithTitle(oldTitle => oldTitle.ToUpperInvariant())
     .WithEntry(200m, new DateOnly(2022, 1, 1), "Found on road")
     .WithEntry(-20.5m, new DateOnly(2022, 1, 2), "Lunch")
     .WithEntries(new Entry[] 
@@ -18,6 +17,11 @@
         Console.ForegroundColor = entry.amount >= 0 ? ConsoleColor.Green : ConsoleColor.Yellow;
         olderFormatter(entry);
         Console.ResetColor();
+    })
+    .WithTitle((oldTitle, context) => 
+    {
+        var total = context.Entries.Sum(entry => entry.amount);
+        return $"{oldTitle.ToUpperInvariant()} ($ {total})";
     })
     .Build();
 
